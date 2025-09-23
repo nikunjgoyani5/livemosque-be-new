@@ -33,7 +33,6 @@ const SectionSchema: Schema = new Schema<ISection>(
     visible: { type: Boolean, default: true },
     type: { type: String, required: true },
     content: { type: Schema.Types.Mixed },
-    media: [ImageSchema],
   },
   { timestamps: true }
 );
