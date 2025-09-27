@@ -1,12 +1,42 @@
 import { Request, Response } from "express";
-import { Section } from "../models/Section";
+import { ISection, Section } from "../models/Section";
 import { reindexAllSections } from "../helper/order";
 
 /** Get all */
 export const getSections = async (_req: Request, res: Response) => {
   try {
-    const sections = await Section.find().sort({ orderIndex: 1 });
-    res.json(sections);
+    const sections: ISection[] = await Section.find({
+      visible: true,
+    }).sort({
+      orderIndex: 1,
+    });
+    const grouped = sections
+      // 1️⃣ sort whole array first by orderIndex
+      .sort((a, b) => a.orderIndex - b.orderIndex)
+      // 2️⃣ then group by type
+      .reduce((acc: any, item) => {
+        const type = item.type;
+
+        if (!acc[type]) {
+          acc[type] = [];
+        }
+        acc[type].push(item);
+        return acc;
+      }, {});
+
+    // 3️⃣ sort each group by orderIndex again (safety)
+    Object.keys(grouped).forEach((type) => {
+      grouped[type].sort((a: any, b: any) => a.orderIndex - b.orderIndex);
+    });
+
+    // 4️⃣ if you want single-item types to be object instead of array:
+    Object.keys(grouped).forEach((type) => {
+      if (grouped[type].length === 1) {
+        grouped[type] = grouped[type][0];
+      }
+    });
+
+    res.json(grouped);
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }

@@ -11,7 +11,7 @@ const router = Router();
 
 router.get("/", getSections);
 router.post("/", protect, createSection);
-router.patch("/:id", protect, updateSection);
+router.patch("/:id", updateSection);
 router.delete("/:id", protect, deleteSection);
 
 export default router;
