@@ -42,6 +42,16 @@ export const getSections = async (_req: Request, res: Response) => {
   }
 };
 
+/** Get By ID */
+export const getSectionsById = async (req: Request, res: Response) => {
+  try {
+    const section = await Section.findById(req.params.id);
+    res.json(section);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 /** Create */
 export const createSection = async (req: Request, res: Response) => {
   try {
