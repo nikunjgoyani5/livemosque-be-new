@@ -5,6 +5,7 @@ import { connectDB } from "./config/db";
 import authRoutes from "./routes/authRoutes";
 import sectionRoutes from "./routes/sectionRoutes";
 import fileRoutes from "./routes/fileRoutes";
+import blogRoutes from "./routes/blogRoutes";
 import path from "path";
 
 dotenv.config();
@@ -27,5 +28,6 @@ app.get("/api/health", (req, res) =>
 app.use("/api/auth", authRoutes);
 app.use("/api/sections", sectionRoutes);
 app.use("/api/files", fileRoutes);
+app.use("/api/blogs", blogRoutes);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

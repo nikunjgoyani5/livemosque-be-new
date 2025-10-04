@@ -108,3 +108,55 @@ export const deleteSection = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+/**
+ * @route GET /api/blogs
+ * @desc Get all blogs from the "LATEST_NEWS" section
+ */
+export const getBlogs = async (req: Request, res: Response) => {
+  try {
+    const section = await Section.findOne({ type: "LATEST_NEWS" });
+
+    if (!section || !section.content?.data) {
+      return res.status(404).json({ message: "No blogs found" });
+    }
+
+    // Optionally sort by date (assuming postdate is a readable string)
+    const blogs = section.content.data.sort(
+      (a: any, b: any) =>
+        new Date(b.postdate).getTime() - new Date(a.postdate).getTime()
+    );
+
+    res.json(blogs);
+  } catch (error) {
+    console.error("Error fetching blogs:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * @route GET /api/blogs/:index
+ * @desc Get a single blog detail by its index or id
+ */
+export const getBlogDetail = async (req: Request, res: Response) => {
+  try {
+    const section = await Section.findOne({ type: "LATEST_NEWS" });
+
+    if (!section || !section.content?.data) {
+      return res.status(404).json({ message: "No blogs found" });
+    }
+
+    // You can identify blogs either by index or by a unique title / slug
+    const { index } = req.params;
+    const blog = section.content.data[index];
+
+    if (!blog) {
+      return res.status(404).json({ message: "Blog not found" });
+    }
+
+    res.json(blog);
+  } catch (error) {
+    console.error("Error fetching blog detail:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
