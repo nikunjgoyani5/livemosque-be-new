@@ -10,6 +10,8 @@ export interface ISection extends Document {
   slug: string;
   orderIndex: number;
   visible: boolean;
+  isSection: boolean;
+  page: string;
   type: string;
   content: Record<string, any>;
   media: IImage[];
@@ -31,7 +33,9 @@ const SectionSchema: Schema = new Schema<ISection>(
     slug: { type: String, required: true },
     orderIndex: { type: Number, required: true, default: 1 },
     visible: { type: Boolean, default: true },
+    isSection: { type: Boolean, default: true },
     type: { type: String, required: true },
+    page: { type: String, required: true },
     content: { type: Schema.Types.Mixed },
   },
   { timestamps: true }
