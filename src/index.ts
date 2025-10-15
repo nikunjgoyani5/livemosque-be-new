@@ -14,7 +14,7 @@ connectDB();
 const PORT = process.env.PORT || 5000;
 const app = express();
 // Allow CORS with JSON body
-app.use(cors({ origin: process.env.corsOrigin, credentials: true }));
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
