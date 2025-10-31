@@ -16,7 +16,12 @@ const app = express();
 // Allow CORS with JSON body
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://livemosque-beta.vercel.app"],
+    origin: [
+      "http://localhost:3000",
+      "https://livemosque-beta.vercel.app",
+      "https://app.livemosque.live",
+      "https://livemosque.live",
+    ],
     credentials: true,
   })
 );
