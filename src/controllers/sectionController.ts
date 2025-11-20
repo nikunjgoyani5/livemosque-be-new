@@ -5,9 +5,7 @@ import { reindexAllSections } from "../helper/order";
 /** Get all */
 export const getSections = async (_req: Request, res: Response) => {
   try {
-    const sections: ISection[] = await Section.find({
-      visible: true,
-    }).sort({
+    const sections: ISection[] = await Section.find({}).sort({
       orderIndex: 1,
     });
     const grouped = sections
@@ -100,7 +98,7 @@ export const updateSection = async (req: Request, res: Response) => {
 /** Soft delete */
 export const deleteSection = async (req: Request, res: Response) => {
   try {
-    await Section.findByIdAndUpdate(req.params.id, { visible: false });
+    await Section.findByIdAndDelete(req.params.id);
     // optional: physically remove: await Section.findByIdAndDelete(req.params.id);
     await reindexAllSections();
     res.json({ message: "Section hidden" });
