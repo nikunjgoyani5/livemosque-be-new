@@ -2,80 +2,113 @@ import express, { Request, Response } from "express";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
+import cloudinary from "cloudinary";
 
 const router = express.Router();
 
-// uploads folder (create if not exists)
-const uploadDir = path.join(__dirname, "../../uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (
-    _req: Request,
-    _file: Express.Multer.File,
-    cb: (error: Error | null, destination: string) => void
-  ) => {
-    cb(null, uploadDir);
-  },
-  filename: (
-    _req: Request,
-    file: Express.Multer.File,
-    cb: (error: Error | null, filename: string) => void
-  ) => {
-    // sanitize original name
-    const original = file.originalname
-      .trim()
-      .replace(/\s+/g, "_") // spaces to underscores
-      .replace(/[^\w.\-]/g, ""); // remove weird chars except dot and dash
-
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, `${uniqueSuffix}-${original}`);
-  },
+// Cloudinary configuration
+cloudinary.v2.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME! || "dtcbpwl2d",
+  api_key: process.env.CLOUDINARY_API_KEY! || "319752223439493",
+  api_secret:
+    process.env.CLOUDINARY_API_SECRET! || "EtXHNs6pk6BfVT9ctFvPfpDVaYE",
 });
 
-const upload = multer({ storage });
+const memoryStorage = multer.memoryStorage();
+const upload = multer({ storage: memoryStorage });
+
+function extractPublicId(url: string): string {
+  try {
+    const parts = url.split("/upload/")[1]; // take everything after /upload/
+    if (!parts) return "";
+
+    // Remove leading version number v123...
+    const withoutVersion = parts.replace(/^v\d+\//, "");
+
+    // Remove file extension
+    return withoutVersion.replace(/\.[^/.]+$/, "");
+  } catch {
+    return "";
+  }
+}
 
 router.post(
   "/manage",
   upload.array("files", 10),
-  (req: Request, res: Response) => {
-    const files = req.files as Express.Multer.File[] | undefined;
+  async (req: Request, res: Response) => {
+    try {
+      const files = req.files as Express.Multer.File[] | undefined;
 
-    // handle deletePaths[] or deletePaths
-    const deletePathsRaw =
-      (req.body.deletePaths as string | string[]) ||
-      (req.body["deletePaths[]"] as string | string[]);
+      // handle deletePaths[] or deletePaths
+      const deletePathsRaw =
+        (req.body.deletePaths as string | string[]) ||
+        (req.body["deletePaths[]"] as string | string[]);
 
-    let deletePaths: string[] = [];
-    if (deletePathsRaw) {
-      deletePaths = Array.isArray(deletePathsRaw)
-        ? deletePathsRaw
-        : [deletePathsRaw];
-    }
-
-    // build uploaded files response
-    const uploadedFiles: string[] = [];
-    if (files && files.length > 0) {
-      for (const f of files) {
-        uploadedFiles.push(`/uploads/${f.filename}`);
+      let deletePaths: string[] = [];
+      if (deletePathsRaw) {
+        deletePaths = Array.isArray(deletePathsRaw)
+          ? deletePathsRaw
+          : [deletePathsRaw];
       }
-    }
 
-    // delete files
-    const deletedFiles: string[] = [];
-    if (deletePaths.length > 0) {
-      for (const relPath of deletePaths) {
-        const fullPath = path.join(__dirname, "../../", relPath);
-        if (fs.existsSync(fullPath)) {
-          fs.unlinkSync(fullPath);
-          deletedFiles.push(relPath);
+      const uploaded: string[] = [];
+      const deleted: string[] = [];
+
+      // 1️⃣ Upload new files to Cloudinary
+      if (files && files.length > 0) {
+        for (const file of files) {
+          const fileType = file.mimetype;
+
+          if (fileType.startsWith("image/") || fileType.startsWith("video/")) {
+            // Upload to Cloudinary
+            const uploadResult = await new Promise<any>((resolve, reject) => {
+              const stream = cloudinary.v2.uploader.upload_stream(
+                { resource_type: "auto", folder: "uploads" },
+                (error, result) => {
+                  if (error) reject(error);
+                  else resolve(result);
+                }
+              );
+              stream.end(file.buffer);
+            });
+
+            uploaded.push(uploadResult.secure_url);
+          } else {
+            // Skip saving non-image/video files
+            console.warn(
+              "Unsupported file type for Cloudinary upload:",
+              fileType
+            );
+          }
         }
       }
-    }
 
-    res.json({ uploaded: uploadedFiles, deleted: deletedFiles });
+      // 2️⃣ Delete files from Cloudinary or local server
+      if (deletePaths.length > 0) {
+        for (const deletePath of deletePaths) {
+          if (deletePath.startsWith("https")) {
+            // Cloudinary file
+            const publicId = extractPublicId(deletePath);
+            if (!publicId) continue;
+
+            const result = await cloudinary.v2.uploader.destroy(publicId);
+            if (result.result === "ok") deleted.push(deletePath);
+          } else if (deletePath.startsWith("/uploads")) {
+            // Local server file
+            const fullPath = path.join(__dirname, "../../", deletePath);
+            if (fs.existsSync(fullPath)) {
+              fs.unlinkSync(fullPath);
+              deleted.push(deletePath);
+            }
+          }
+        }
+      }
+
+      res.json({ uploaded, deleted });
+    } catch (error) {
+      console.error("Manage API error:", error);
+      res.status(500).json({ error: "Manage API failed" });
+    }
   }
 );
 
