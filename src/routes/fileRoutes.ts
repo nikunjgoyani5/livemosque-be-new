@@ -3,6 +3,7 @@ import multer from "multer";
 import fs from "fs";
 import path from "path";
 import cloudinary from "cloudinary";
+import sharp from "sharp";
 
 const router = express.Router();
 
@@ -29,6 +30,42 @@ function extractPublicId(url: string): string {
     return withoutVersion.replace(/\.[^/.]+$/, "");
   } catch {
     return "";
+  }
+}
+
+async function compressImage(
+  file: Express.Multer.File
+): Promise<Buffer | Express.Multer.File> {
+  const MAX_SIZE_MB = 10;
+  const bytesToMB = file.size / (1024 * 1024);
+
+  // If file <= 10 MB → do NOT compress
+  if (bytesToMB <= MAX_SIZE_MB) {
+    return file;
+  }
+
+  console.log("Original file size:", bytesToMB, "MB", file);
+
+  try {
+    // Compress the image using sharp
+    const compressedBuffer = await sharp(file.buffer)
+      .resize({
+        width: 1920, // Resize to a maximum width of 1920px
+        withoutEnlargement: true, // Do not enlarge smaller images
+      })
+      .jpeg({ quality: 80 }) // Adjust quality to 80%
+      .toBuffer();
+
+    console.log(
+      "Compressed file size:",
+      compressedBuffer.length / (1024 * 1024),
+      "MB"
+    );
+
+    return compressedBuffer;
+  } catch (error) {
+    console.error("Image compression error:", error);
+    return file; // Fallback to original file if compression fails
   }
 }
 
@@ -59,8 +96,25 @@ router.post(
         for (const file of files) {
           const fileType = file.mimetype;
 
-          if (fileType.startsWith("image/") || fileType.startsWith("video/")) {
+          if (fileType.startsWith("image/")) {
+            // Compress image if larger than 10 MB
+            const compressedBuffer = await compressImage(file);
+
             // Upload to Cloudinary
+            const uploadResult = await new Promise<any>((resolve, reject) => {
+              const stream = cloudinary.v2.uploader.upload_stream(
+                { resource_type: "auto", folder: "uploads" },
+                (error, result) => {
+                  if (error) reject(error);
+                  else resolve(result);
+                }
+              );
+              stream.end(compressedBuffer);
+            });
+
+            uploaded.push(uploadResult.secure_url);
+          } else if (fileType.startsWith("video/")) {
+            // Upload video directly to Cloudinary
             const uploadResult = await new Promise<any>((resolve, reject) => {
               const stream = cloudinary.v2.uploader.upload_stream(
                 { resource_type: "auto", folder: "uploads" },
