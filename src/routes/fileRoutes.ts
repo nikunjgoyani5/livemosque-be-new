@@ -35,13 +35,13 @@ function extractPublicId(url: string): string {
 
 async function compressImage(
   file: Express.Multer.File
-): Promise<Buffer | Express.Multer.File> {
+): Promise<Buffer> {
   const MAX_SIZE_MB = 10;
   const bytesToMB = file.size / (1024 * 1024);
 
   // If file <= 10 MB → do NOT compress
   if (bytesToMB <= MAX_SIZE_MB) {
-    return file;
+    return file.buffer; // Return the original buffer
   }
 
   console.log("Original file size:", bytesToMB, "MB", file);
@@ -62,10 +62,10 @@ async function compressImage(
       "MB"
     );
 
-    return compressedBuffer;
+    return compressedBuffer; // Return the compressed buffer
   } catch (error) {
     console.error("Image compression error:", error);
-    return file; // Fallback to original file if compression fails
+    return file.buffer; // Fallback to original buffer if compression fails
   }
 }
 
@@ -109,7 +109,7 @@ router.post(
                   else resolve(result);
                 }
               );
-              stream.end(compressedBuffer);
+              stream.end(compressedBuffer); // Ensure this is a Buffer
             });
 
             uploaded.push(uploadResult.secure_url);
@@ -123,7 +123,7 @@ router.post(
                   else resolve(result);
                 }
               );
-              stream.end(file.buffer);
+              stream.end(file.buffer); // Ensure this is a Buffer
             });
 
             uploaded.push(uploadResult.secure_url);
