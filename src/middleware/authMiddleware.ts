@@ -6,7 +6,20 @@ export const protect = (
   res: Response,
   next: NextFunction
 ) => {
-  const token = req.headers.authorization?.split(" ")[1];
+  // Check token from Authorization header or cookies
+  let token = req.headers.authorization?.split(" ")[1];
+
+  // Parse token from cookie string if not in Authorization header
+  if (!token && req.headers?.cookie) {
+    const cookies = req.headers.cookie.split("; ");
+    const tokenCookie = cookies.find((cookie: string) =>
+      cookie.startsWith("token=")
+    );
+    if (tokenCookie) {
+      token = tokenCookie.split("=")[1];
+    }
+  }
+
   if (!token) return res.status(401).json({ message: "Not authorized" });
 
   try {
@@ -14,7 +27,7 @@ export const protect = (
       id: string;
     };
 
-    req.adminId = decoded.id; // now TS should be happy
+    req.adminId = decoded.id;
     next();
   } catch {
     res.status(401).json({ message: "Token invalid" });
