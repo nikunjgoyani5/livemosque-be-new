@@ -98,6 +98,8 @@ export const changePassword = async (req: any, res: Response) => {
 };
 
 export const changeEmail = async (req: any, res: Response) => {
+  console.log("5555555555555555555");
+
   const { newEmail, password } = req.body;
 
   if (!newEmail || !password) {

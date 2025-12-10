@@ -21,6 +21,7 @@ export const protect = (
   }
 
   if (!token) return res.status(401).json({ message: "Not authorized" });
+  console.log("token", token);
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
