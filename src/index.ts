@@ -6,6 +6,7 @@ import authRoutes from "./routes/authRoutes";
 import sectionRoutes from "./routes/sectionRoutes";
 import fileRoutes from "./routes/fileRoutes";
 import blogRoutes from "./routes/blogRoutes";
+import uploadRoutes from "./routes/uploadRoutes";
 import path from "path";
 
 dotenv.config();
@@ -23,18 +24,19 @@ app.use(
       "https://livemosque.live",
     ],
     credentials: true,
-  })
+  }),
 );
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // also serve static uploads so you can view them
+app.use("/", express.static(path.join(__dirname, "../assets")));
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 app.get("/api/health", (req, res) =>
-  res.send("server is running on http://localhost:" + PORT)
+  res.send("server is running on http://localhost:" + PORT),
 );
-
+app.use("/api/upload", uploadRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/sections", sectionRoutes);
 app.use("/api/files", fileRoutes);
