@@ -70,4 +70,29 @@ router.get("/", (req, res) => {
   res.json({ files });
 });
 
+// Delete a file from the assets directory (protected)
+router.delete("/:filename", protect, (req, res) => {
+  const { filename } = req.params;
+
+  if (!filename) {
+    return res.status(400).json({ message: "Filename is required" });
+  }
+
+  // Prevent path traversal attacks
+  const safeName = path.basename(filename);
+  const filePath = path.join("assets", safeName);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: "File not found" });
+  }
+
+  fs.unlink(filePath, (err) => {
+    if (err) {
+      return res.status(500).json({ message: "Failed to delete file", error: err.message });
+    }
+
+    res.json({ message: "File deleted successfully", fileName: safeName });
+  });
+});
+
 export default router;
