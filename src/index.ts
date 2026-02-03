@@ -22,10 +22,13 @@ app.use(
       "https://livemosque-beta.vercel.app",
       "https://app.livemosque.live",
       "https://livemosque.live",
+      "https://live-mosuqe-website.vercel.app",
+      ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN] : []),
     ],
     credentials: true,
   }),
 );
+
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
@@ -34,8 +37,9 @@ app.use("/", express.static(path.join(__dirname, "../assets")));
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 app.get("/api/health", (req, res) =>
-  res.send("server is running on http://localhost:" + PORT),
+  res.send("server is running on http://localhost:" + PORT)
 );
+
 app.use("/api/upload", uploadRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/sections", sectionRoutes);
