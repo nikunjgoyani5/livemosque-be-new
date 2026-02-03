@@ -146,7 +146,13 @@ export const getBlogDetail = async (req: Request, res: Response) => {
 
     // You can identify blogs either by index or by a unique title / slug
     const { index } = req.params;
-    const blog = section.content.data[index];
+    const blogIndex = Number(index);
+
+    if (!Number.isInteger(blogIndex) || blogIndex < 0) {
+      return res.status(400).json({ message: "Invalid blog index" });
+    }
+
+    const blog = section.content.data[blogIndex];
 
     if (!blog) {
       return res.status(404).json({ message: "Blog not found" });
