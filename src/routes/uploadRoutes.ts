@@ -47,11 +47,25 @@ const upload = multer({ storage, fileFilter });
 
 const router = Router();
 
-router.post("/", protect, upload.single("file"), (req: any, res) => {
+router.post("/", protect, upload.array("file"), (req: any, res) => {
+  const filesArray = Array.isArray(req.files) ? req.files : [];
+
+  if (!filesArray.length) {
+    return res.status(400).json({ message: "No files uploaded" });
+  }
+
+  const uploadedFiles = filesArray.map((file: any) => ({
+    fileName: file.filename,
+    url: `${req.protocol}://${req.get("host")}/${file.filename}`,
+  }));
+
+  const primaryFile = uploadedFiles[0];
+
   res.json({
-    message: "File uploaded successfully",
-    fileName: req.file.filename,
-    url: `${req.protocol}://${req.get("host")}/${req.file.filename}`,
+    message: filesArray.length > 1 ? "Files uploaded successfully" : "File uploaded successfully",
+    fileName: primaryFile?.fileName,
+    url: primaryFile?.url,
+    files: uploadedFiles,
   });
 });
 
