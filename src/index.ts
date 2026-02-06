@@ -15,16 +15,50 @@ connectDB();
 const PORT = process.env.PORT || 5000;
 const app = express();
 // Allow CORS with JSON body
+// app.use(
+//   cors({
+//     origin: [
+//       "http://localhost:3000",
+//       "https://livemosque-beta.vercel.app",
+//       "https://app.livemosque.live",
+//       "https://livemosque.live",
+//       "https://live-mosuqe-website.vercel.app",
+//       ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN] : []),
+//     ],
+//     credentials: true,
+//   }),
+// );
+const tempOrigins = [
+  "http://localhost:3000",
+  "https://livemosque-beta.vercel.app",
+  "https://app.livemosque.live",
+  "https://livemosque.live",
+  "https://live-mosuqe-website.vercel.app",
+  ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN] : []),
+];
+console.log("tempOrigins", tempOrigins);
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://livemosque-beta.vercel.app",
+  "https://app.livemosque.live",
+  "https://livemosque.live",
+];
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "https://livemosque-beta.vercel.app",
-      "https://app.livemosque.live",
-      "https://livemosque.live",
-      "https://live-mosuqe-website.vercel.app",
-      ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN] : []),
-    ],
+    origin: (origin, callback) => {
+      if (
+        !origin || // allow server-to-server / curl
+        allowedOrigins.includes(origin) ||
+        origin === process.env.CORS_ORIGIN ||
+        origin.endsWith(".vercel.app")
+      ) {
+        callback(null, true);
+      } else {
+        console.log("CORS not allowed", origin);
+        callback(new Error("CORS not allowed"));
+      }
+    },
     credentials: true,
   }),
 );
